@@ -1,0 +1,2 @@
+ADD R0,R0,#3
+TRAP x25

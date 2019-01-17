@@ -1,0 +1,10 @@
+# Ignore binaries
+lc3
+lc3asm
+
+# Ignore flex & bison generated implemnetation file
+lc3_asmparser.hh
+lc3_asmparser.cc
+lc3_asmparser.output
+lc3_asmlexer.hh
+lc3_asmlexer.cc

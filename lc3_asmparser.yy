@@ -14,10 +14,12 @@
 {
 #include <stdint.h>
 #include <string>
+#include <iostream>
+#include <iomanip>
 
-namespace lc3 { struct asmcontext; };
 
 typedef uint16_t u16;
+namespace lc3 { struct asmcontext; };
 }
 
 %param { lc3::asmcontext& ctx }
@@ -29,13 +31,13 @@ typedef uint16_t u16;
 
 %token END 0
 %token <std::string> IDENTIFIER
-%token <int>         NUMBER
-%token <int>         REGISTER;
-%token INDENT " "
+%token <int> NUMBER
+%token <int> REGISTER;
+%token <u16> ADD AND BR JMP RET JSR JSRR LD LDI LDR LEA NOT RTI ST STI STR TRAP
 
 %left ','
 
-%type <u16> opcode operands operand
+%type <u16> operation
 
 %%
 program
@@ -44,7 +46,7 @@ program
 ;
 
 line
-:   label_opt INDENT opcode operands
+:   label_opt operation                 { std::cout << "LINE: 0x" << std::hex << $operation << std::dec << std::endl; ctx.add_instr($operation); }
 ;
 
 label_opt
@@ -52,25 +54,29 @@ label_opt
 |   %empty
 ;
 
-opcode
-:   IDENTIFIER  { $$ = 0; }
-;
-
-operands
-:   operands ',' operands
-|   operand
-|   %empty
-;
-
-operand
-:   IDENTIFIER
-|   NUMBER
-|   REGISTER
+operation
+:   ADD[opcode] REGISTER[dr] ',' REGISTER[sr1] ',' REGISTER[sr2]        { $$ = ($opcode<<12) | ($dr<<9) | ($sr1<<6) | ($sr2); }
+|   ADD[opcode] REGISTER[dr] ',' REGISTER[sr1] ',' NUMBER[imm5]         { $$ = ($opcode<<12) | ($dr<<9) | ($sr1<<6) | (0x20 | ($imm5&0x1F)); }
+|   AND[opcode] REGISTER[dr] ',' REGISTER[sr1] ',' REGISTER[sr2]        { $$ = ($opcode<<12) | ($dr<<9) | ($sr1<<6) | ($sr2); }
+|   AND[opcode] REGISTER[dr] ',' REGISTER[sr1] ',' NUMBER[imm5]         { $$ = ($opcode<<12) | ($dr<<9) | ($sr1<<6) | (0x20 | ($imm5&0x1F)); }
+|   BR
+|   JMP[opcode] REGISTER[baseR]                                         { $$ = ($opcode<<12) | ($baseR<<6); }
+|   RET[opcode]                                                         { $$ = ($opcode<<12) | (0x7<<6); }
+|   JSR
+|   JSRR[opcode] REGISTER[baseR]                                        { $$ = ($opcode<<12) | ($baseR<<6); }
+|   LD
+|   LDI
+|   LDR
+|   LEA
+|   NOT[opcode] REGISTER[dr] ',' REGISTER[sr]                           { $$ = ($opcode<<12) | ($dr<<9) | ($sr<<6); }
+|   RTI[opcode]                                                         { $$ = ($opcode<<12); }
+|   ST
+|   STI
+|   STR
+|   TRAP[opcode] NUMBER[trapvect8]                                      { $$ = ($opcode<<12) | ($trapvect8); }
 ;
 
 %%
-
-#include <iostream>
 
 
 void yy::parser::error(const location_type& l, const std::string& m)
