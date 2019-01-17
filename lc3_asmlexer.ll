@@ -25,9 +25,9 @@ auto make_NUMBER(const std::string& s, int base, const location_type& loc)
 #define YY_USER_ACTION loc.columns(yyleng);
 %}
 
-dec     [0-9]+
-bin     [0-1]+
-hex     [0-9a-fA-F]+
+dec     [-+]?[0-9]+
+bin     [-+]?[0-1]+
+hex     [-+]?[0-9a-fA-F]+
 id      [A-Za-z][A-Za-z0-9_]{1,20}
 %%
 %{
