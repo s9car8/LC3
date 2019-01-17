@@ -30,3 +30,10 @@ bool asmcontext::parse_file(const std::string& fname)
     std::ifstream f(fname);
     return parse_stream(f, fname);
 }
+
+void asmcontext::resolve(const std::string& label, unsigned label_pos)
+{
+    for (auto [pos, width] : unresolved[label]) {
+        code[pos] |= (label_pos - pos)&((0x1<<width)-1);
+    }
+}

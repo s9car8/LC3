@@ -16,6 +16,8 @@ auto make_REGISTER(const std::string& s, const location_type& loc)
     -> yy::parser::symbol_type;
 auto make_NUMBER(const std::string& s, int base, const location_type& loc)
     -> yy::parser::symbol_type;
+auto make_BR(const std::string& flags, const location_type& loc)
+    -> yy::parser::symbol_type;
 %}
 
 %option noyywrap nounput
@@ -41,7 +43,7 @@ b{bin}                  { return make_NUMBER(yytext + 1, 2, loc); }
 x{hex}                  { return make_NUMBER(yytext + 1, 16, loc); }
 "add"|"ADD"             { return yy::parser::make_ADD(0x1, loc); }
 "and"|"AND"             { return yy::parser::make_AND(0x5, loc); }
-"br"|"BR"               { return yy::parser::make_BR(0x0, loc); }
+("br"|"BR")[nzp]{1,3}   { return make_BR(yytext + 2, loc); }
 "jmp"|"JMP"             { return yy::parser::make_JMP(0xC, loc); }
 "ret"|"RET"             { return yy::parser::make_RET(0xC, loc); }
 "jsr"|"JSR"             { return yy::parser::make_JSR(0x4, loc); }
@@ -81,4 +83,19 @@ auto make_NUMBER(const std::string& s, int base, const location_type& loc)
     long res = strtol(s.c_str(), NULL, base);
     if (errno) throw yy::parser::syntax_error(loc, "Invalid integer: " + s);
     return yy::parser::make_NUMBER((int) res, loc);
+}
+
+auto make_BR(const std::string& s, const location_type& loc)
+    -> yy::parser::symbol_type
+{
+    u16 flags = 0;
+
+    for (auto fch : s) {
+        switch (fch) {
+            case 'n': flags |= 0x1 << 11;
+            case 'z': flags |= 0x1 << 10;
+            case 'w': flags |= 0x1 <<  9;
+        }
+    }
+    return yy::parser::make_BR(flags, loc);
 }
