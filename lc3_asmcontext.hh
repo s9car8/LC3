@@ -33,8 +33,9 @@ struct asmcontext
     bool parse_string(const std::string& str, const std::string& sname = "<string input>");
     bool parse_file(const std::string& fname);
 
-    auto pos() const { return code.size(); }
-    void add_instr(u16 i) { code.push_back(i); }
+    int pos() const { return code.size(); }
+    void push_instr(u16 i) { code.push_back(i); }
+    void push_word(u16 i) { code.push_back(i); }
     void add_label(const std::string& label) { symbol_table.emplace(label, pos()); resolve(label, pos()); }
     void add_unresolved(const std::string& label, unsigned width) { unresolved[label].emplace_back(pos(), width); }
 

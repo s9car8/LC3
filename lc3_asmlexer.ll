@@ -30,6 +30,7 @@ auto make_BR(const std::string& flags, const location_type& loc)
 dec     [-+]?[0-9]+
 bin     [-+]?[0-1]+
 hex     [-+]?[0-9a-fA-F]+
+str     "\""[^"]*"\""
 id      [A-Za-z][A-Za-z0-9_]{1,20}
 %%
 %{
@@ -38,9 +39,10 @@ id      [A-Za-z][A-Za-z0-9_]{1,20}
 %}
 
 R{dec}                  { return make_REGISTER(yytext + 1, loc); }
-#{dec}                  { return make_NUMBER(yytext + 1, 10, loc); }
+#?{dec}                 { return make_NUMBER(yytext + 1, 10, loc); }
 b{bin}                  { return make_NUMBER(yytext + 1, 2, loc); }
 x{hex}                  { return make_NUMBER(yytext + 1, 16, loc); }
+{str}                   { return yy::parser::make_STRING(std::string(yytext+1, strlen(yytext+1)-1), loc); }
 "add"|"ADD"             { return yy::parser::make_ADD(0x1, loc); }
 "and"|"AND"             { return yy::parser::make_AND(0x5, loc); }
 ("br"|"BR")[nzp]{1,3}   { return make_BR(yytext + 2, loc); }
@@ -58,6 +60,11 @@ x{hex}                  { return make_NUMBER(yytext + 1, 16, loc); }
 "sti"|"STI"             { return yy::parser::make_STI(0xB, loc); }
 "str"|"STR"             { return yy::parser::make_STR(0x7, loc); }
 "trap"|"TRAP"           { return yy::parser::make_TRAP(0xF, loc); }
+\.("orig"|"ORIG")       { return yy::parser::make_ORIG_D(loc); }
+\.("fill"|"FILL")       { return yy::parser::make_FILL_D(loc); }
+\.("blkw"|"BLKW")       { return yy::parser::make_BLKW_D(loc); }
+\.("stringz"|"STRINGZ") { return yy::parser::make_STRINGZ_D(loc); }
+\.("end"|"END")         { return yy::parser::make_END(loc); }
 {id}                    { printf("<ID, \'%s\'>\n", yytext); return yy::parser::make_IDENTIFIER(yytext, loc); }
 [ \t]+                  { loc.step(); }
 \n+                     { loc.lines(yyleng); loc.step(); }
