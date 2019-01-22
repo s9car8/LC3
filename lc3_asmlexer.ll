@@ -4,6 +4,7 @@
 #include <string>
 #include "lc3_asmcontext.hh"
 #include "lc3_asmparser.hh"
+#include "lc3_asmlexer.hh"
 
 typedef yy::parser::token token;
 typedef yy::parser::token_type token_type;
@@ -20,6 +21,7 @@ auto make_BR(const std::string& flags, const location_type& loc)
     -> yy::parser::symbol_type;
 %}
 
+%option c++
 %option noyywrap nounput
 
 %{
@@ -106,3 +108,5 @@ auto make_BR(const std::string& s, const location_type& loc)
     }
     return yy::parser::make_BR(flags, loc);
 }
+
+int ::yyFlexLexer::yylex() { return 0; }

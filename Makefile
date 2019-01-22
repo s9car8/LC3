@@ -9,7 +9,8 @@ CXXFLAGS := -Wall -std=gnu++2a
 TEMP_FILES :=
 
 all:  lc3 lc3asm
-	cat test3.asm | ./lc3asm && ./lc3
+	./lc3asm test3.asm test
+	./lc3 test
 
 TEMP_FILES += lc3
 lc3: lc3.cpp

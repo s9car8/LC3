@@ -20,13 +20,23 @@
 
 typedef uint16_t u16;
 namespace lc3 { struct asmcontext; };
+namespace yy { struct lexer; }
 }
 
+%lex-param { yy::lexer& lexer }
+%parse-param { yy::lexer& lexer }
 %param { lc3::asmcontext& ctx }
 
 %code
 {
 #include "lc3_asmcontext.hh"
+#include "lc3_asmlexer.hh"
+
+
+yy::parser::symbol_type yylex(yy::lexer& lexer, lc3::asmcontext& ctx)
+{
+    return lexer.lex(ctx);
+}
 
 // Compreses signed number with sp marking sign-bit.
 #define SCOMPR(n, sp) ({ struct {u16 x: sp;} s; *(int*)&s = n; s.x; })
@@ -111,12 +121,24 @@ void yy::parser::error(const location_type& l, const std::string& m)
               << ':' << l.end.column << ": " << m << '\n';
 }
 
+#include <fstream>
+
 int main(int argc, const char* argv[])
 {
+    if (argc != 3) { std::cout << "Usage: lc3asm <input-file> <output-file>." << std::endl; return -1; }
+    std::string fin_name = argv[1];
+    std::ifstream fin(fin_name);
+    std::ofstream fout(argv[2]);
+
+    if (!fin.is_open()) { std::cout << "Couln't open file \'" << argv[1] << "\'." << std::endl; return -2; }
+    if (!fout.is_open()) { std::cout << "Couln't open file \'" << argv[1] << "\'." << std::endl; return -2; }
+
     lc3::asmcontext ctx;
     ctx.trace_parsing = true;
 
-    auto res = ctx.parse_stream(std::cin);
-    if (!res) { std::cout << "Result:\n" << std::hex; for (auto instr : ctx.code) std::cout << "0x" << instr << std::endl; std::cout << std::dec; }
+    std::cout << fin_name << std::endl;
+    auto res = ctx.parse_stream(fin, fin_name);
+    // if (!res) { int i = 0; std::cout << "Result:\n" << std::hex; for (u16 instr : ctx.code) std::cout << (i+=2)-2 << ": " << "0x" << instr << std::endl; std::cout << std::dec; }
+    if (!res) for (auto x : ctx.code) {fout.write((const char*)&x, 2);}
     return res;
 }

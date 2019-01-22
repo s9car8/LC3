@@ -5,6 +5,7 @@
 // Local
 #include "lc3_asmcontext.hh"
 #include "lc3_asmparser.hh"
+#include "lc3_asmlexer.hh"
 
 using namespace lc3;
 
@@ -13,8 +14,12 @@ bool asmcontext::parse_stream(std::istream& is, const std::string& sname)
 {
     file = sname;
     loc.initialize(&file);
-    yy::parser parse(*this);
+
+    yy::lexer lexer(&is);
+    lexer.set_debug(trace_scanning);
+    yy::parser parse(lexer, *this);
     parse.set_debug_level(trace_parsing);
+
     auto res = parse();
     return res;
 }

@@ -44,10 +44,4 @@ struct asmcontext
 
 }
 
-#ifndef YY_DECL
-#define YY_DECL \
-    yy::parser::symbol_type yylex(lc3::asmcontext& ctx)
-YY_DECL;
-#endif // YY_DECL
-
 #endif // ASMCONTEXT_H
