@@ -10,7 +10,7 @@ TEMP_FILES :=
 
 all:  lc3 lc3asm
 	./lc3asm test3.asm test
-	./lc3 test
+	./lc3 -e 0x3050 test
 
 TEMP_FILES += lc3
 lc3: lc3.cpp

@@ -6,6 +6,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <argp.h>
 
 
 typedef int16_t  i16;
@@ -158,12 +159,39 @@ namespace cpu
     }
 }
 
-int main(int argc, const char* args[])
+struct config
 {
-    if (argc != 2) { std::cout << "Usage: lc3 <input-file>." << std::endl; return -1; }
-    std::ifstream fin(argv[1], std::ios::binary);
+    unsigned entry;
+    char filename[50];
+};
 
-    if (!fin.is_open()) { std::cout << "Couln't open file \'" << argv[1] << "\'." << std::endl; return -2; }
+static int parse_opt(int key, char* arg, struct argp_state* state)
+{
+    struct config* config = (struct config*) state->input;
+
+    switch (key)
+    {
+        case 'e': config->entry = strtol(arg, nullptr, 0); break;
+        case ARGP_KEY_ARG: if (config->filename[0] != '\0') argp_usage(state); strcpy(config->filename, arg); break;
+        case ARGP_KEY_END: if (config->filename[0] == '\0') argp_failure(state, 1, 0, "Executable name must be specified");
+    }
+    return 0;
+}
+
+struct argp_option options[] = {
+    {"entry", 'e', "A", 0, "Specify entry point address."},
+    { 0 }
+};
+struct argp argp = { options, parse_opt, "<input-file>" };
+
+int main(int argc, char* argv[])
+{
+    struct config config = {.entry = 0x200};
+    argp_parse(&argp, argc, argv, 0, 0, &config);
+
+    std::ifstream fin(config.filename, std::ios::binary);
+
+    if (!fin.is_open()) { std::cout << "Couln't open file \'" << config.filename << "\'." << std::endl; return -2; }
 
     fin.unsetf(std::ios::skipws);
     fin.seekg(0, std::ios::end);
@@ -175,6 +203,7 @@ int main(int argc, const char* args[])
     code.resize(file_sz / sizeof(u16));
     fin.read((char*)code.data(), file_sz);
 
+    cpu::PC = config.entry;
     cpu::Load(code.data(), code.size(), 0);
     cpu::Run();
     std::cout << cpu::alu::A << std::endl;
