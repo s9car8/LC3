@@ -74,38 +74,39 @@ operation
 |   AND[opcode] REGISTER[dr] ',' REGISTER[sr1] ',' NUMBER[imm5]         { ctx.push_instr(($opcode<<12) | ($dr<<9) | ($sr1<<6) | (0x20 | ($imm5&0x1F))); }
 |   BR[flags] IDENTIFIER[label]                                         { /* NOTE(sergey): The opcode for this instruction is 0x0. */
                                                                           if (auto it = ctx.symbol_table.find($label); it != ctx.symbol_table.end())
-                                                                              ctx.push_instr($flags | (SCOMPR(it->second - ctx.pos(), 9)&0x1FF));
+                                                                              ctx.push_instr($flags | (SCOMPR(it->second - ctx.pos() - 1, 9)&0x1FF));
                                                                           else { ctx.add_unresolved($label, 9); ctx.push_instr($flags); } }
 |   JMP[opcode] REGISTER[baseR]                                         { ctx.push_instr(($opcode<<12) | ($baseR<<6)); }
 |   RET[opcode]                                                         { ctx.push_instr(($opcode<<12) | (0x7<<6)); }
 |   JSR[opcode] IDENTIFIER[label]                                       { if (auto it = ctx.symbol_table.find($label); it != ctx.symbol_table.end())
-                                                                              ctx.push_instr(($opcode<<12) | 0x400 | (SCOMPR(it->second - ctx.pos(), 11)&0x7FF));
-                                                                          else { ctx.add_unresolved($label, 11); ctx.push_instr(($opcode<<12) | 0x400); } }
+                                                                              ctx.push_instr(($opcode<<12) | 0x800 | (SCOMPR(it->second - ctx.pos() - 1, 11)&0x7FF));
+                                                                          else { ctx.add_unresolved($label, 11); ctx.push_instr(($opcode<<12) | 0x800); } }
 |   JSRR[opcode] REGISTER[baseR]                                        { ctx.push_instr(($opcode<<12) | ($baseR<<6)); }
 |   LD[opcode] REGISTER[dr] ',' IDENTIFIER[label]                       { if (auto it = ctx.symbol_table.find($label); it != ctx.symbol_table.end())
-                                                                              ctx.push_instr(($opcode<<12) | ($dr<<9) | (SCOMPR(it->second - ctx.pos(), 9)&0x1FF));
+                                                                              ctx.push_instr(($opcode<<12) | ($dr<<9) | (SCOMPR(it->second - ctx.pos() - 1, 9)&0x1FF));
                                                                           else { ctx.add_unresolved($label, 9); ctx.push_instr(($opcode<<12) | ($dr<<9)); } }
 |   LDI[opcode] REGISTER[dr] ',' IDENTIFIER[label]                      { if (auto it = ctx.symbol_table.find($label); it != ctx.symbol_table.end())
-                                                                              ctx.push_instr(($opcode<<12) | ($dr<<9) | (SCOMPR(it->second - ctx.pos(), 9)&0x1FF));
+                                                                              ctx.push_instr(($opcode<<12) | ($dr<<9) | (SCOMPR(it->second - ctx.pos() - 1, 9)&0x1FF));
                                                                           else { ctx.add_unresolved($label, 9); ctx.push_instr(($opcode<<12) | ($dr<<9)); } }
 |   LDR[opcode] REGISTER[dr] ',' REGISTER[baseR] ',' NUMBER[offset6]    { ctx.push_instr(($opcode<<12) | ($dr<<9) | ($baseR<<6) | (SCOMPR($offset6, 6)&0x3F)); }
 |   LEA[opcode] REGISTER[dr] ',' IDENTIFIER[label]                      { if (auto it = ctx.symbol_table.find($label); it != ctx.symbol_table.end())
-                                                                              ctx.push_instr(($opcode<<12) | ($dr<<9) | (SCOMPR(it->second - ctx.pos(), 9)&0x1FF));
+                                                                              ctx.push_instr(($opcode<<12) | ($dr<<9) | (SCOMPR(it->second - ctx.pos() - 1, 9)&0x1FF));
                                                                           else { ctx.add_unresolved($label, 9); ctx.push_instr(($opcode<<12) | ($dr<<9)); } }
 |   NOT[opcode] REGISTER[dr] ',' REGISTER[sr]                           { ctx.push_instr(($opcode<<12) | ($dr<<9) | ($sr<<6)); }
 |   RTI[opcode]                                                         { ctx.push_instr(($opcode<<12)); }
 |   ST[opcode] REGISTER[sr] ',' IDENTIFIER[label]                       { if (auto it = ctx.symbol_table.find($label); it != ctx.symbol_table.end())
-                                                                              ctx.push_instr(($opcode<<12) | ($sr<<9) | (SCOMPR(it->second - ctx.pos(), 9)&0x1FF));
+                                                                              ctx.push_instr(($opcode<<12) | ($sr<<9) | (SCOMPR(it->second - ctx.pos() - 1, 9)&0x1FF));
                                                                           else { ctx.add_unresolved($label, 9); ctx.push_instr(($opcode<<12) | ($sr<<9)); } }
 |   STI[opcode] REGISTER[sr] ',' IDENTIFIER[label]                      { if (auto it = ctx.symbol_table.find($label); it != ctx.symbol_table.end())
-                                                                              ctx.push_instr(($opcode<<12) | ($sr<<9) | (SCOMPR(it->second - ctx.pos(), 9)&0x1FF));
+                                                                              ctx.push_instr(($opcode<<12) | ($sr<<9) | (SCOMPR(it->second - ctx.pos() - 1, 9)&0x1FF));
                                                                           else { ctx.add_unresolved($label, 9); ctx.push_instr(($opcode<<12) | ($sr<<9)); } }
 |   STR[opcode] REGISTER[sr] ',' REGISTER[baseR] ',' NUMBER[offset6]    { ctx.push_instr(($opcode<<12) | ($sr<<9) | ($baseR<<6) | (SCOMPR($offset6, 6)&0x3F)); }
 |   TRAP[opcode] NUMBER[trapvect8]                                      { ctx.push_instr(($opcode<<12) | ($trapvect8)); }
 ;
 
 directive
-:   ORIG_D NUMBER[pos]                                                  { assert($pos >= ctx.pos()); auto n = $pos - ctx.pos(); for (int i = 0; i < n; ++i) ctx.push_word(0); }
+:   ORIG_D NUMBER[pos]                                                  { /* NOTE(sergey): The label declared before .ORIG will be interpreted in an unexpected way. */
+                                                                          assert($pos >= ctx.pos()); auto n = $pos - ctx.pos(); for (int i = 0; i < n; ++i) ctx.push_word(0); }
 |   FILL_D NUMBER[value]                                                { ctx.push_word($value); }
 |   BLKW_D NUMBER[size]                                                 { for (int i = 0; i < $size; ++i) ctx.push_word(0); }
 |   STRINGZ_D STRING[str]                                               { for (auto ch: $str) ctx.push_word((u16)ch); ctx.push_word(0x0000); }

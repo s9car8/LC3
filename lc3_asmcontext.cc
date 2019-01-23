@@ -36,9 +36,18 @@ bool asmcontext::parse_file(const std::string& fname)
     return parse_stream(f, fname);
 }
 
+
+#define SCOMPR(n, sp) ({ struct {u16 x: sp;} s; *(int*)&s = n; s.x; })
+
 void asmcontext::resolve(const std::string& label, unsigned label_pos)
 {
     for (auto [pos, width] : unresolved[label]) {
-        code[pos] |= (label_pos - pos)&((0x1<<width)-1);
+        switch (width) {
+            case 6: code[pos] |= SCOMPR(label_pos - pos - 1, 6)&0x3F; break;
+            case 9: code[pos] |= SCOMPR(label_pos - pos - 1, 9)&0x1FF; break;
+            case 11: code[pos] |= SCOMPR(label_pos - pos - 1, 11)&0x7FF; break;
+            default: break;
+        }
+        // code[pos] |= scompr(label_pos - pos - 1, width)&((0x1<<width)-1);
     }
 }
