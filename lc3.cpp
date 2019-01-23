@@ -1,9 +1,11 @@
 
 #include <stdint.h>
-#include <iostream>
 #include <cstring>
 #include <unordered_map>
 #include <array>
+#include <vector>
+#include <iostream>
+#include <fstream>
 
 
 typedef int16_t  i16;
@@ -12,7 +14,7 @@ typedef uint8_t  u8;
 
 namespace cpu
 {
-    u16 Mem[0x1000];
+    u16 Mem[0x10000];
 
     u16 PC = 0x200;
     u16 IR;
@@ -65,7 +67,7 @@ namespace cpu
             o(0x5, r.dr = (IR>>9)&0x7; r.sr1 = (IR>>6)&0x7,, alu::A = r.R[r.sr1]; alu::B = (IR&0x20) ? SEXT5(IR&0x1F) : r.R[r.sr2], alu::And(), r.R[r.dr] = alu::A) /* AND */ \
             o(0x0,, TEMP = PC + SEXT9(IR&0x01FF),, if ((IR>>9)&0x7 & (r.F & (1<<N | 1<<Z | 1<<P))) PC = TEMP,) /* BR */ \
             o(0xC,, TEMP = r.R[(IR>>6)&0x7],, PC = TEMP,) /* JMP|RET */ \
-            o(0x4,, TEMP = (IR&0x800) ? PC + SEXT11(IR&0x700) : r.R[(IR>>6)&0x7],, PC = TEMP,) /* JSR|JSRR */ \
+            o(0x4,, TEMP = (IR&0x800) ? PC + SEXT11(IR&0x7FF) : r.R[(IR>>6)&0x7],, PC = TEMP,) /* JSR|JSRR */ \
             o(0x2, r.dr = (IR>>9)&0x7, TEMP = PC + SEXT9(IR&0x1FF), r.R[r.dr] = Mem[TEMP], setcc(),) /* LD */ \
             o(0xA, r.dr = (IR>>9)&0x7, TEMP = PC + SEXT9(IR&0x1FF), r.R[r.dr] = Mem[Mem[TEMP]], setcc(),) /* LDI */ \
             o(0x6, r.dr = (IR>>9)&0x7, TEMP = r.R[(IR>>6)&0x7] + SEXT6(IR&0x3F), r.R[r.dr] = Mem[TEMP], setcc(),) /* LDR */ \
@@ -150,6 +152,7 @@ namespace cpu
     {
         while (!interrupted)
         {
+            std::cout << "PC: 0x" << std::hex << PC << "; Op: 0x" << (IR) << "; Phase: " << impl::phase << std::dec << std::endl;
             impl::DispatchPhase();
         }
     }
@@ -157,12 +160,22 @@ namespace cpu
 
 int main(int argc, const char* args[])
 {
-    u16 code[] = {
-        0x1023, // ADD R0, R0, #3
-        0xF025, // TRAP 0x25
-    };
+    if (argc != 2) { std::cout << "Usage: lc3 <input-file>." << std::endl; return -1; }
+    std::ifstream fin(argv[1], std::ios::binary);
 
-    cpu::Load(code, sizeof(code) / sizeof(u16));
+    if (!fin.is_open()) { std::cout << "Couln't open file \'" << argv[1] << "\'." << std::endl; return -2; }
+
+    fin.unsetf(std::ios::skipws);
+    fin.seekg(0, std::ios::end);
+    auto file_sz = static_cast<std::streampos>(fin.tellg());
+    fin.seekg(0, std::ios::beg);
+
+    std::vector<u16> code;
+
+    code.resize(file_sz / sizeof(u16));
+    fin.read((char*)code.data(), file_sz);
+
+    cpu::Load(code.data(), code.size(), 0);
     cpu::Run();
     std::cout << cpu::alu::A << std::endl;
     return 0;
