@@ -60,6 +60,7 @@ program
 line
 :   label_opt operation
 |   label_opt directive
+|   label_opt error
 ;
 
 label_opt
